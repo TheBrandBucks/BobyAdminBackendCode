@@ -1,0 +1,211 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+
+enum Role {
+  superAdmin
+  user
+}
+
+enum CategoryType {
+  blog
+  faq
+}
+
+model Category {
+  id        String       @id @default(cuid())
+  name      String
+  type      CategoryType
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([name, type])
+}
+
+model users {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String?  @unique
+  full_name     String
+  role          Role
+  password      String?
+  refresh_token String?
+   // Opposite relation (1 user → many orders)
+  orders        orders[]
+  Consultations  privateConsultaion[]
+  blogs Blog[]
+  videos Video[]
+  projects Project[]
+  faqs Faq[]
+  created_at    DateTime @default(now())
+  updated_at    DateTime @default(now())
+
+}
+
+
+
+// this is order model for Upbiz-Media services
+// Enums for status, package type, and service recurrence
+enum OrderStatus {
+  pending
+  in_Review
+  in_progress
+  fulfilled
+  cancelled
+}
+
+
+
+model orders {
+  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  // Customer Info
+  email_address       String
+  phone_number        String
+  billing_address     String?
+  billing_city        String?
+  additional_instructions String?   @default("")
+  full_name           String
+  selected_country    String?
+
+
+
+  // Services (Array of objects)
+  selected_services   Json     // [{ id, name, price, recurring, .... }]
+
+  // Selected Plan (Single JSON object)
+  selected_plan          Json?    // { name, price, isRecurring, billing }
+  // Totals
+  one_time_total      Decimal  @db.Decimal(10,2)
+  recurring_total     Decimal  @db.Decimal(10,2)
+  final_invoice_total Decimal  @db.Decimal(10,2)
+
+  // Meta
+  status              OrderStatus  @default(pending)
+// Card details
+  cardholder_name        String
+
+ // Payment
+  payment_id             String
+
+// Payment history (array of JSON objects)
+  payment_history        Json       @default("[]")
+
+  total_paid             Decimal    @default(0) @db.Decimal(10, 2)
+
+ // Foreign key to users
+  user_id                String?    @db.Uuid
+  user                   users?     @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  created_at             DateTime   @default(now())
+  updated_at             DateTime   @updatedAt
+}
+
+
+enum ConsultaionStatus {
+  pending
+  confirmed
+  cancelled
+}
+
+model privateConsultaion {
+  id         String        @id @default(cuid())
+  name       String
+  email      String
+  phone      String
+  company    String?
+  budget     String?
+  goals      String?
+  timeframe  String?
+  status     ConsultaionStatus  @default(pending)
+  
+ // Foreign key to users
+  user_id                String?    @db.Uuid
+  user                   users?     @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  created_at             DateTime   @default(now())
+  updated_at             DateTime   @updatedAt
+}
+
+
+model Blog {
+  id           String   @id @default(cuid())         // Unique blog ID
+  title        String   @unique
+  excerpt      String
+  content      String
+  author       String   @default("Anonymous")
+  date         DateTime @default(now())
+  category     String
+  image        String
+  readTime     String
+  views        Int      @default(0)
+  isPublished  Boolean  @default(true)
+  // ownerId      String?                           // Optional relation field
+  // owner        User?    @relation(fields: [ownerId], references: [id])
+ // Foreign key to users
+  ownerId               String?    @db.Uuid
+  owner                   users?     @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Video {
+  id           String   @id @default(uuid())
+  videoFile    String   // YouTube URL
+  thumbnail    String   // Cloudinary URL
+  title        String
+  description  String
+  duration     Float?   // Optional (Number in Mongoose)
+  views        Int      @default(0)
+  isPublished  Boolean  @default(true)
+ // Foreign key to users
+  ownerId               String?    @db.Uuid
+  owner                   users?     @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Project {
+  id          String    @id @default(uuid())
+  client      String
+  industry    String
+  challenge   String
+  solution    String
+images     String[] 
+    // JSON field for dynamic result list (e.g. [{ value, label, icon }])
+  results     Json
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+
+
+  // optional owner/admin who added it
+ // Foreign key to users
+  ownerId               String?    @db.Uuid
+  owner                   users?     @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+}
+
+model Faq {
+  id         String   @id @default(cuid())// Unique blog ID
+  question   String   @unique
+  answer      String
+  category     String
+ // Foreign key to users
+  ownerId               String?    @db.Uuid
+  owner                   users?     @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
