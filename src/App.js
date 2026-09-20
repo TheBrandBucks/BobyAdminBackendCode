@@ -3,10 +3,16 @@ import cookieParser from 'cookie-parser';
 import nodemailer from "nodemailer";
 import cors from 'cors';
 const app = express();
+//
+// Comma-separated string ko Array mein convert karein
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+  : [];
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN,// some time is me hum aik array det eh jis me mibile or web k front ka URL hota he
+  origin: allowedOrigins, // Ab yeh array ['https://www.wellness4u.love', 'https://www.bobytalwaar.xyz'] ban chuka hai
   credentials: true
-}))
+}));
 app.use(express.json({ limit: "20kb" }));// alow server to accept json data
 app.use(express.urlencoded({ extended: true, limit: "20kb" }))// alow server to accept updated url data
 app.use(express.static("public")) // alow server to accept static files
@@ -75,3 +81,5 @@ This message was sent via your portfolio contact form.
   }
 });
 export default app;
+
+// cors fix updated
